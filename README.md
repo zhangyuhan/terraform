@@ -1,2 +1,2 @@
-# terrafrom
+# terraform
 IaC template
