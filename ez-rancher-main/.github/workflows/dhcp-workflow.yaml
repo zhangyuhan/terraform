@@ -1,0 +1,122 @@
+name: DHCP Deploy
+
+on:
+  push:
+    paths:
+    - 'terraform/**'
+    - '.github/workflows/workflow.yaml'
+  workflow_dispatch:
+    inputs:
+      git-ref:
+        description: Git Ref (Optional)    
+        required: false
+  schedule:
+    # Run every 12 hours
+    - cron: '0 */12 * * *'
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        if: github.event.inputs.git-ref == ''
+
+      - name: Clone Repository (Custom Ref)
+        uses: actions/checkout@v2
+        if: github.event.inputs.git-ref != ''
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 0.14.0
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive -diff .
+
+      - name: Terraform Init
+        run: |
+          terraform init
+        working-directory: ./terraform/vsphere-rancher
+
+      - name: Validate
+        run: terraform validate
+        working-directory: ./terraform/vsphere-rancher
+
+  docker-deploy:
+    name: Docker Deploy - DHCP
+    runs-on: docker
+    needs: validate
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Build image
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          export COMMIT_ID=$(echo $GITHUB_CONTEXT | jq -r '.sha' | cut -c1-7)
+          sudo docker build --no-cache -t ez-rancher:$COMMIT_ID .
+
+      - name: Create vars file
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          TF_VAR_vm_template_name: bionic-server-cloudimg-amd64
+          TF_VAR_vsphere_vcenter: ${{ secrets.TF_VSPHERE_VCENTER }}
+          TF_VAR_vsphere_user: ${{ secrets.TF_VSPHERE_USER }}
+          TF_VAR_vsphere_password: ${{ secrets.TF_VSPHERE_PASSWORD }}
+          TF_VAR_vsphere_unverified_ssl: true
+          TF_VAR_vsphere_datacenter: ${{ secrets.TF_VSPHERE_DATACENTER }}
+          TF_VAR_vm_datastore: ${{ secrets.TF_VM_DATASTORE }}
+          TF_VAR_vm_network: ${{ secrets.TF_VM_NETWORK }}
+          TF_VAR_vsphere_vm_folder: ${{ secrets.TF_VSPHERE_VM_FOLDER }}
+          TF_VAR_rancher_server_url: ${{ secrets.TF_RANCHER_SERVER_URL }}
+          TF_VAR_rancher_password: ${{ secrets.TF_RANCHER_PASSWORD }}
+          TF_VAR_rancher_create_node_template: true
+          TF_VAR_vsphere_resource_pool: ${{ secrets.TF_VSPHERE_RESOURCE_POOL }}
+          TF_VAR_use_auto_dns_url: true
+          TF_VAR_ssh_public_key : ${{ secrets.TF_SSH_PUBLIC_KEY }}
+        run: |
+          export COMMIT_ID=$(echo $GITHUB_CONTEXT | jq -r '.sha' | cut -c1-7)
+          mkdir deliverables-$COMMIT_ID
+          env | grep TF_ > env.list
+          echo TF_VAR_vm_name=$COMMIT_ID >> env.list
+
+      - name: Plan
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          COMMIT_ID=$(echo $GITHUB_CONTEXT | jq -r '.sha' | cut -c1-7)
+          sudo docker run --rm -v `pwd`/deliverables-$COMMIT_ID:/terraform/vsphere-rancher/deliverables \
+            --env-file env.list \
+            ez-rancher:$COMMIT_ID plan -input="false"
+
+      - name: Deploy
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          COMMIT_ID=$(echo $GITHUB_CONTEXT | jq -r '.sha' | cut -c1-7)
+          sudo docker run --rm -v `pwd`/deliverables-$COMMIT_ID:/terraform/vsphere-rancher/deliverables \
+            --env-file env.list \
+            ez-rancher:$COMMIT_ID apply -input="false" -auto-approve
+
+      - name: Destroy
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        if: ${{ success() }}
+        run: |
+          COMMIT_ID=$(echo $GITHUB_CONTEXT | jq -r '.sha' | cut -c1-7)
+          sudo docker run --rm -v `pwd`/deliverables-$COMMIT_ID:/terraform/vsphere-rancher/deliverables \
+            --env-file env.list \
+            ez-rancher:$COMMIT_ID destroy -input="false" -auto-approve
+
+      - name: Remove image
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        if: ${{ success() }}
+        run: |
+          COMMIT_ID=$(echo $GITHUB_CONTEXT | jq -r '.sha' | cut -c1-7)
+          sudo docker rmi ez-rancher:$COMMIT_ID

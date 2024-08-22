@@ -1,0 +1,14 @@
+Makefile
+rancher.tfvars
+.terraform
+**/.terraform
+.github
+hack
+deliverables
+**/deliverables
+k8s
+.idea
+.git
+
+!hack/compress_binaries.sh
+!hack/install_upx.sh

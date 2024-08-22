@@ -1,0 +1,22 @@
+*.tfstate
+*.tfstate*
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+.terraform/
+/terraform/.terraform
+/terraform/deliverables/*
+terraform/container-build-stamp.txt
+
+packer/variables.json
+# Cache objects
+packer/packer_cache/
+
+# Crash log
+crash.log
+
+# For built boxes
+*.box
+
+deliverables*/
+.idea

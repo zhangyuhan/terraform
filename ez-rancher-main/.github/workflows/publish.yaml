@@ -1,0 +1,29 @@
+name: Publish to Registry
+on:
+  release:
+    types: [published, created, edited, released, prereleased]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - run: git fetch --prune --unshallow
+      - name: Get release version
+        id: get_version
+        run: echo "RELEASE_VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+      - name: Get GITHUB_REF
+        run: echo "${{ env.GITHUB_REF }}"
+      - name: Get commit revision
+        id: get_commit
+        run: echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: netapp/ez-rancher
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+          registry: docker.io
+          dockerfile: Dockerfile
+          buildargs: GIT_COMMIT=${{ env.GIT_COMMIT }},EZR_COMPRESS_BINARIES=true
+          tags: "latest, ${{ env.RELEASE_VERSION }}"
