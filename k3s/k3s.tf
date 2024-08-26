@@ -17,10 +17,11 @@ module "k3s" {
       ip = "192.168.157.134"
       connection = {
         timeout  = "60s"
-        type     = "ssh"
+        # type     = "ssh"
         host     = "192.168.157.134"
-        password = var.password
-        user     = "devin"
+        private_key = file("./id_rsa")
+        # password = var.password
+        user     = "root"
       }
     }
   }
