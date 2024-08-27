@@ -1,3 +1,3 @@
 variable "password" {
-  default = "123456"
+  default = "Chubb@1988"
 }

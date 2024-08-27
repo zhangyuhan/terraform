@@ -3,7 +3,7 @@ module "k3s" {
   k3s_version              = "v1.30.3+k3s1"
   generate_ca_certificates = true
   global_flags = [
-    "--tls-san 192.168.157.134",
+    "--tls-san 124.222.106.248",
     "--write-kubeconfig-mode 644",
     "--disable=traefik",
     "--kube-controller-manager-arg bind-address=0.0.0.0",
@@ -14,13 +14,13 @@ module "k3s" {
 
   servers = {
     "k3s" = {
-      ip = "192.168.157.134"
+      ip = "10.0.4.10"
       connection = {
         timeout  = "60s"
-        # type     = "ssh"
-        host     = "192.168.157.134"
-        private_key = file("./id_rsa")
-        # password = var.password
+        type     = "ssh"
+        host     = "124.222.106.248"
+        # private_key = file("./id_rsa")
+        password = var.password
         user     = "root"
       }
     }
