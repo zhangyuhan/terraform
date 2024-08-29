@@ -3,7 +3,7 @@ module "k3s" {
   k3s_version              = "v1.30.3+k3s1"
   generate_ca_certificates = true
   global_flags = [
-    "--tls-san 124.222.106.248",
+    "--tls-san ${tencentcloud_instance.web[0].public_ip}",
     "--write-kubeconfig-mode 644",
     "--disable=traefik",
     "--kube-controller-manager-arg bind-address=0.0.0.0",
@@ -14,14 +14,13 @@ module "k3s" {
 
   servers = {
     "k3s" = {
-      ip = "10.0.4.10"
+      ip = tencentcloud_instance.web[0].private_ip
       connection = {
         timeout  = "60s"
         type     = "ssh"
-        host     = "124.222.106.248"
-        # private_key = file("./id_rsa")
+        host     = tencentcloud_instance.web[0].public_ip
         password = var.password
-        user     = "root"
+        user     = "ubuntu"
       }
     }
   }

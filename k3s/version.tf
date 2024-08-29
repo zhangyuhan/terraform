@@ -1,9 +1,14 @@
 terraform {
-  required_version = "v1.9.4"
+  required_version = "> 0.13.0"
   required_providers {
+    tencentcloud = {
+      source  = "tencentcloudstack/tencentcloud"
+      version = "1.81.5"
+    }
+
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.15"
+      version = "~> 2.11"
     }
   }
 }
