@@ -98,3 +98,12 @@ agent
 
 curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh | INSTALL_K3S_MIRROR=cn K3S_URL=https://server-1-IP:6443 K3S_TOKEN=12345 sh -
 ```
+
+
+# Semaphore UI
+
+```shell
+docker run --name semaphore -p 3000:3000 -e SEMAPHORE_DB_DIALECT=mysql -e SEMAPHORE_DB_HOST=localhost -e SEMAPHORE_DB_NAME=semaphore -e SEMAPHORE_DB_USER=root -e SEMAPHORE_ADMIN=admin -e SEMAPHORE_ADMIN_PASSWORD=changeme -e SEMAPHORE_ADMIN_NAME="Admin" -e SEMAPHORE_ADMIN_EMAIL=admin@localhost -d semaphoreui/semaphore:v2.10.22
+
+docker run --name semaphore -p 3000:3000 -e SEMAPHORE_DB_DIALECT=bolt -e SEMAPHORE_ADMIN=admin -e SEMAPHORE_ADMIN_PASSWORD=changeme -e SEMAPHORE_ADMIN_NAME="Admin" -e SEMAPHORE_ADMIN_EMAIL=admin@localhost -d semaphoreui/semaphore:v2.10.22
+```
